@@ -1,1 +1,1 @@
-# {{project-name}} - Changelog
+# authn-magic-token - Changelog

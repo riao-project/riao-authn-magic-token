@@ -1,4 +1,4 @@
-# {{project-name}} - Readme
+# authn-magic-token - Readme
 
 ## Contributing & Development
 

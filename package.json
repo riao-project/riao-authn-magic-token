@@ -1,7 +1,7 @@
 {
-	"name": "{{project-name}}",
+	"name": "authn-magic-token",
 	"version": "1.0.0",
-	"description": "{{project-name}}",
+	"description": "authn-magic-token",
 	"private": "true",
 	"typescript-template": {
 		"base": "1.0.1",
@@ -41,13 +41,13 @@
 	},
 	"repository": {
 		"type": "git",
-		"url": "git+https://github.com/{{project-org}}/{{project-name}}.git"
+		"url": "git+https://github.com/authn-magic-token/authn-magic-token.git"
 	},
-	"author": "{{project-org}}",
+	"author": "authn-magic-token",
 	"license": "MIT",
 	"bugs": {
-		"url": "https://github.com/{{project-org}}/{{project-name}}/issues"
+		"url": "https://github.com/authn-magic-token/authn-magic-token/issues"
 	},
-	"homepage": "https://github.com/{{project-org}}/{{project-name}}#readme",
+	"homepage": "https://github.com/authn-magic-token/authn-magic-token#readme",
 	"keywords": []
 }
