@@ -4,6 +4,7 @@ import { Principal, KeyPairGenerator } from '@riao/iam';
 import { createDatabase, runMigrations } from '../test/database';
 // eslint-disable-next-line max-len
 import { AuthenticationMagicTokenMigrations } from '../src/authentication-magic-token-migrations';
+import { AuthMigrations } from '@riao/iam/auth/auth-migrations';
 import { maindb } from '../database/main';
 
 /**
@@ -24,6 +25,7 @@ async function main() {
 
 	// Step 2: Run migrations to create magic token tables
 	const migrations = new AuthenticationMagicTokenMigrations();
+	await runMigrations(db, new AuthMigrations());
 	await runMigrations(db, migrations);
 
 	// Step 3: Generate keypair for JWT signing
