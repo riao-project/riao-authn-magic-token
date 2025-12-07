@@ -83,6 +83,6 @@ export async function runMigrationsDown(
 export let db: Database;
 
 export async function initTestDatabase() {
-	db = createDatabase('authn-passwordtest-db');
+	db = createDatabase('authn-magic-token-test-db');
 	await db.init();
 }
