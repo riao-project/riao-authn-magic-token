@@ -1,1 +1,1 @@
-export const a = true;
+export { MagicTokenAuthentication } from './authentication-magic-token';
