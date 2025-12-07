@@ -1,9 +1,8 @@
-import { Migration } from '@riao/dbal';
-import { AuthMigrations } from '@riao/iam/auth/auth-migrations';
+import { Migration, MigrationPackage } from '@riao/dbal';
 // eslint-disable-next-line max-len
 import { CreateMagicTokenTable } from './migrations/001-create-magic-token-table';
 
-export class AuthenticationMagicTokenMigrations extends AuthMigrations {
+export class AuthenticationMagicTokenMigrations extends MigrationPackage {
 	override package = '@riao/authn-magic-token';
 	override name = '@riao/authn-magic-token';
 
@@ -12,7 +11,6 @@ export class AuthenticationMagicTokenMigrations extends AuthMigrations {
 		Record<string, typeof Migration<any>>
 		> {
 		return {
-			...(await super.getMigrations()),
 			'create-magic-token-table': CreateMagicTokenTable,
 		};
 	}

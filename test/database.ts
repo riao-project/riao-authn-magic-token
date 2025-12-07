@@ -3,9 +3,8 @@ import {
 	DatabaseConnectionOptions,
 	Migration,
 	MigrationRunner,
+	MigrationPackage,
 } from '@riao/dbal';
-// eslint-disable-next-line max-len
-import { AuthenticationMagicTokenMigrations } from '../src/authentication-magic-token-migrations';
 import { maindb } from '../database/main';
 import { DatabasePostgres18 } from '@riao/postgres';
 
@@ -43,9 +42,9 @@ export function createDatabase(name: string): Database {
 
 export async function getMigrations(
 	db: Database,
-	authMigrations: AuthenticationMagicTokenMigrations
+	migrationPack: MigrationPackage
 ) {
-	const migrationsRecord = await authMigrations.getMigrations();
+	const migrationsRecord = await migrationPack.getMigrations();
 
 	return Object.entries(migrationsRecord).reduce(
 		(acc, [key, MigrationClass]) => {
@@ -58,20 +57,20 @@ export async function getMigrations(
 
 export async function runMigrations(
 	db: Database,
-	authMigrations: AuthenticationMagicTokenMigrations
+	migrationPack: MigrationPackage
 ) {
 	const runner = new MigrationRunner(db);
-	const migrations = await getMigrations(db, authMigrations);
+	const migrations = await getMigrations(db, migrationPack);
 
 	return runner.run(migrations);
 }
 
 export async function runMigrationsDown(
 	db: Database,
-	authMigrations: AuthenticationMagicTokenMigrations
+	migrationPack: MigrationPackage
 ) {
 	const runner = new MigrationRunner(db);
-	const migrations = await getMigrations(db, authMigrations);
+	const migrations = await getMigrations(db, migrationPack);
 
 	await runner.run(
 		migrations,

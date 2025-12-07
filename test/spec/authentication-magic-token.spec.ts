@@ -6,6 +6,7 @@ import { Token } from '@riao/iam/jwt';
 import { MagicTokenAuthentication } from '../../src';
 // eslint-disable-next-line max-len
 import { AuthenticationMagicTokenMigrations } from '../../src/authentication-magic-token-migrations';
+import { AuthMigrations } from '@riao/iam/auth/auth-migrations';
 
 describe('Authentication - Magic Token', () => {
 	const db = createDatabase('authentication-magic-token');
@@ -23,6 +24,9 @@ describe('Authentication - Magic Token', () => {
 
 	beforeAll(async () => {
 		await db.init();
+		// Run parent migrations first
+		await runMigrations(db, new AuthMigrations());
+		// Run driver-specific migrations
 		await runMigrations(db, new AuthenticationMagicTokenMigrations());
 		await runMigrationsDown(db, new AuthenticationMagicTokenMigrations());
 		await runMigrations(db, new AuthenticationMagicTokenMigrations());
