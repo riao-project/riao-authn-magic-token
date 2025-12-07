@@ -101,20 +101,6 @@ console.log('Authenticated user:', authenticated);
 // Token is automatically deleted after successful authentication
 ```
 
-## Database Schema
-
-The authentication system creates a `iam_magic_tokens` table with the following structure:
-
-```sql
-CREATE TABLE iam_magic_tokens (
-  id SERIAL PRIMARY KEY,
-  principal_id INTEGER NOT NULL REFERENCES iam_principals(id),
-  created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  type VARCHAR(255) NOT NULL,
-  token TEXT NOT NULL
-);
-```
-
 ## Token Expiration
 
 Tokens are time-limited using the `expiresIn` option. Common values:
