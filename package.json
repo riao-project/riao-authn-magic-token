@@ -1,7 +1,7 @@
 {
-	"name": "authn-magic-token",
+	"name": "@riao/authn-magic-token",
 	"version": "1.0.0",
-	"description": "authn-magic-token",
+	"description": "Riao Passwordless",
 	"private": "true",
 	"typescript-template": {
 		"base": "1.0.1",
@@ -47,13 +47,24 @@
 	},
 	"repository": {
 		"type": "git",
-		"url": "git+https://github.com/authn-magic-token/authn-magic-token.git"
+		"url": "git+https://github.com/riao-project/authn-magic-token.git"
 	},
 	"author": "authn-magic-token",
 	"license": "MIT",
 	"bugs": {
-		"url": "https://github.com/authn-magic-token/authn-magic-token/issues"
+		"url": "https://github.com/riao-project/authn-magic-token/issues"
 	},
-	"homepage": "https://github.com/authn-magic-token/authn-magic-token#readme",
-	"keywords": []
+	"homepage": "https://github.com/riao-project/authn-magic-token#readme",
+	"keywords": [
+		"riao",
+		"authn-magic-token",
+		"authentication",
+		"authorization",
+		"passwordless",
+		"magic-token",
+		"iam",
+		"dbal",
+		"auth",
+		"typescript"
+	]
 }
