@@ -3,7 +3,7 @@ import 'jasmine';
 import { createDatabase, runMigrations, runMigrationsDown } from '../database';
 import { Principal, KeyPairGenerator } from '@riao/iam';
 import { Token } from '@riao/iam/jwt';
-import { MagicTokenAuthentication } from '../../src/authentication-magic-token';
+import { MagicTokenAuthentication } from '../../src';
 // eslint-disable-next-line max-len
 import { AuthenticationMagicTokenMigrations } from '../../src/authentication-magic-token-migrations';
 
