@@ -47,7 +47,7 @@ npx riao migration:run
 
 ```typescript
 import { MagicTokenAuthentication } from '@riao/authn-magic-token';
-import { KeyPairGenerator, Principal } from '@riao/iam';
+import { KeyPairGenerator, Principal } from '@riao/crypto';
 
 // Generate keypair for JWT signing
 const keypair = new KeyPairGenerator({ algorithm: 'ES512' }).generate();

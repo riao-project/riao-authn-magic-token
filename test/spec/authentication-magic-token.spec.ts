@@ -1,8 +1,9 @@
 import 'jasmine';
 
 import { createDatabase, runMigrations, runMigrationsDown } from '../database';
-import { Principal, KeyPairGenerator } from '@riao/iam';
-import { Token } from '@riao/iam/jwt';
+import { Principal } from '@riao/iam';
+import { KeyPairGenerator } from '@riao/crypto';
+import { Token } from '@riao/crypto';
 import { MagicTokenAuthentication } from '../../src';
 // eslint-disable-next-line max-len
 import { AuthenticationMagicTokenMigrations } from '../../src/authentication-magic-token-migrations';

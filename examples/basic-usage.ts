@@ -1,6 +1,7 @@
 /* eslint-disable no-console */
 import { MagicTokenAuthentication } from '../src/authentication-magic-token';
-import { Principal, KeyPairGenerator } from '@riao/iam';
+import { Principal } from '@riao/iam';
+import { KeyPairGenerator } from '@riao/crypto';
 import { createDatabase, runMigrations } from '../test/database';
 // eslint-disable-next-line max-len
 import { AuthenticationMagicTokenMigrations } from '../src/authentication-magic-token-migrations';

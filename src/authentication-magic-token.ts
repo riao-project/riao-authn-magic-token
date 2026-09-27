@@ -1,6 +1,6 @@
 import { Authentication, Principal } from '@riao/iam';
 import { AuthOptions } from '@riao/iam/auth/auth';
-import { Jwt, JwtOptions, Token } from '@riao/iam/jwt';
+import { Jwt, JwtOptions, Token } from '@riao/crypto';
 import {
 	defaultTokenOptions,
 	MagicTokenPayload,
