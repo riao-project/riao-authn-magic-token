@@ -22,4 +22,5 @@ export interface MagicTokenRecord {
 	created_at: Date;
 	type: string;
 	token: string;
+	consumption_id?: string | null;
 }

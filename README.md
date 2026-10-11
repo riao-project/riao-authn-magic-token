@@ -4,6 +4,19 @@ A passwordless authentication driver for the RIAO IAM framework that uses magic 
 
 ## Overview
 
+### Single-use token consumption
+
+Run the authentication package migrations before deploying this change. The
+`add-token-consumption-id` migration adds a nullable `consumption_id` column to
+`iam_magic_tokens`; existing unused tokens remain valid.
+
+Authentication conditionally claims an unused token with a unique receipt before
+deleting it. Concurrent replay can produce only one successful authentication.
+An already claimed or missing token retains the existing
+`Token is invalid or expired.` error. A cleanup failure leaves the receipt stored,
+so that token cannot be reused. Claims require normal atomic database updates;
+this does not rely on driver-specific affected-row counts.
+
 Magic-token driver for @riao/iam - magic tokens allow users to log in via a unique, time-limited token sent to their email or other contact method. This is a passwordless authentication approach that improves security by eliminating password-related vulnerabilities.
 
 **Key Features:**
