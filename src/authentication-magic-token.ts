@@ -1,6 +1,9 @@
 import { Authentication, Principal } from '@riao/iam';
-import { AuthOptions } from '@riao/iam/auth/auth';
-import { Jwt, JwtOptions, Token } from '@riao/crypto';
+import {
+	AuthenticationOptions,
+	AuthenticationRejectedError,
+} from '@riao/iam/authentication';
+import { Jwt, JwtOptions, Token, isTokenValidationError } from '@riao/crypto';
 import {
 	defaultTokenOptions,
 	MagicTokenPayload,
@@ -10,7 +13,7 @@ import {
 import { QueryRepository } from '@riao/dbal';
 import { KeyValExpression } from '@riao/dbal/expression/key-val-expression';
 
-export interface MagicTokenAuthenticationOptions extends AuthOptions {
+export interface MagicTokenAuthenticationOptions extends AuthenticationOptions {
 	jwtOptions: JwtOptions;
 }
 
@@ -45,7 +48,9 @@ export class MagicTokenAuthentication<
 		});
 
 		if (principal === null) {
-			throw new Error('Principal not found or not active.');
+			throw new AuthenticationRejectedError(
+				'Principal not found or not active.'
+			);
 		}
 
 		const principalId = principal.id;
@@ -76,21 +81,45 @@ export class MagicTokenAuthentication<
 		token: string;
 		type: string;
 	}): Promise<TPrincipal | null> {
-		// Verify magic token
-		const data = await this.jwt.decodeToken(credentials.token);
-
-		if (data.type !== credentials.type) {
-			throw new Error('Wrong type of token provided for this operation.');
+		// Never use a bearer secret as a protection subject or metadata.
+		const attempt = { scheme: 'magic-token', subject: 'magic-token' };
+		const protection = await this.beforeAuthenticationAttempt(attempt);
+		if (!protection.allowed) {
+			return null;
 		}
 
-		// Check principal
+		let data: MagicTokenPayload;
+		try {
+			data = await this.jwt.decodeToken(credentials.token);
+		}
+		catch (error) {
+			if (!isTokenValidationError(error)) {
+				throw error;
+			}
+			await this.recordAuthenticationFailure(attempt);
+			return null;
+		}
+
+		if (
+			data.type !== credentials.type ||
+			(typeof data.principalId !== 'string' &&
+				typeof data.principalId !== 'number')
+		) {
+			await this.recordAuthenticationFailure(attempt);
+			return null;
+		}
+
 		const principal = await this.findActivePrincipal({
 			where: <KeyValExpression<TPrincipal>>{
 				id: data.principalId,
 			},
 		});
 
-		// Check token exists
+		if (!principal) {
+			await this.recordAuthenticationFailure(attempt);
+			return null;
+		}
+
 		const tokenRecord = await this.magicTokenRepo.findOne({
 			where: {
 				principal_id: data.principalId,
@@ -98,16 +127,15 @@ export class MagicTokenAuthentication<
 				type: credentials.type,
 			},
 		});
-
 		if (!tokenRecord) {
-			throw new Error('Token is invalid or expired.');
+			await this.recordAuthenticationFailure(attempt);
+			return null;
 		}
-
-		// Delete token
 		await this.magicTokenRepo.delete({
 			where: { id: tokenRecord.id },
 		});
 
+		await this.recordAuthenticationSuccess(attempt);
 		return principal;
 	}
 }
