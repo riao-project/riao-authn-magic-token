@@ -100,7 +100,8 @@ const authenticated = await auth.authenticate({
 
 if (authenticated === null) {
   // Return a generic login rejection (including blocked attempts).
-} else {
+}
+else {
   // Create your application's session for authenticated.id here.
   // Token has been consumed; do not use it as a session bearer token.
 }
