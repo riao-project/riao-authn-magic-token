@@ -31,6 +31,12 @@ export class CreateMagicTokenTable extends Migration {
 					length: 1024,
 					required: true,
 				},
+				{
+					name: 'consumption_id',
+					type: ColumnType.VARCHAR,
+					length: 64,
+					required: false,
+				},
 			],
 		});
 	}

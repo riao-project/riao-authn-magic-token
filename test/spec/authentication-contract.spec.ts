@@ -1,4 +1,4 @@
-import { Database } from '@riao/dbal';
+import { Database, SelectQuery, UpdateOptions } from '@riao/dbal';
 import { Jwt } from '@riao/crypto';
 import { Principal } from '@riao/iam';
 import {
@@ -6,6 +6,7 @@ import {
 	AuthenticationRejectedError,
 } from '@riao/iam/authentication';
 import { MagicTokenAuthentication } from '../../src';
+import { MagicTokenRecord } from '../../src/magic-token';
 
 describe('Magic token authentication contract', () => {
 	let auth: MagicTokenAuthentication;
@@ -13,8 +14,10 @@ describe('Magic token authentication contract', () => {
 		findOne: () => Promise<object | null>;
 	}>;
 	let tokens: jasmine.SpyObj<{
-		findOne: (options: unknown) => Promise<object | null>;
-		delete: (options: unknown) => Promise<void>;
+		update: (options: UpdateOptions<MagicTokenRecord>) => Promise<void>;
+		findOne: (options: SelectQuery<MagicTokenRecord>) =>
+			Promise<MagicTokenRecord | null>;
+		delete: (options: SelectQuery<MagicTokenRecord>) => Promise<void>;
 	}>;
 	let protection: jasmine.SpyObj<AuthenticationProtection>;
 	const jwt = new Jwt({ secret: 'test-secret', algorithm: 'HS512' });
@@ -27,8 +30,10 @@ describe('Magic token authentication contract', () => {
 	beforeEach(async () => {
 		principalRepo = jasmine.createSpyObj('principalRepo', ['findOne']);
 		principalRepo.findOne.and.resolveTo(principal);
-		tokens = jasmine.createSpyObj('tokens', ['findOne', 'delete']);
-		tokens.findOne.and.resolveTo({ id: 1 });
+		tokens = jasmine.createSpyObj('tokens', [
+			'update', 'findOne', 'delete',
+		]);
+		tokens.update.and.resolveTo();
 		tokens.delete.and.resolveTo();
 		protection = jasmine.createSpyObj('protection', [
 			'beforeAttempt', 'onFailure', 'onSuccess',
@@ -48,6 +53,10 @@ describe('Magic token authentication contract', () => {
 		token = (await jwt.generateToken({
 			type: 'auth', principalId: 7,
 		})).token;
+		tokens.findOne.and.resolveTo({
+			id: 1, principal_id: 7, type: 'auth', token,
+			consumption_id: null, created_at: new Date(),
+		});
 	});
 
 	it('runs before and success hooks, and never exposes the token to hooks',
@@ -59,10 +68,20 @@ describe('Magic token authentication contract', () => {
 			expect(protection.onFailure).not.toHaveBeenCalled();
 			expect(JSON.stringify(protection.beforeAttempt.calls.allArgs()))
 				.not.toContain(token);
-			expect(tokens.findOne).toHaveBeenCalledWith({
-				where: { principal_id: 7, token, type: 'auth' },
-			});
-			expect(tokens.delete).toHaveBeenCalledWith({ where: { id: 1 } });
+			const claim = tokens.update.calls.mostRecent().args[0];
+			const claimWhere = claim.where as Partial<MagicTokenRecord>;
+			const receipt = claim.set.consumption_id as string;
+			const lookupWhere = tokens.findOne.calls.mostRecent().args[0]
+				.where as Partial<MagicTokenRecord>;
+			const deleteWhere = tokens.delete.calls.mostRecent().args[0]
+				.where as Partial<MagicTokenRecord>;
+			expect(claimWhere.principal_id).toBe(7);
+			expect(claimWhere.token).toBe(token);
+			expect(claimWhere.type).toBe('auth');
+			expect(claimWhere.consumption_id).toBeNull();
+			expect(typeof receipt).toBe('string');
+			expect(lookupWhere.consumption_id).toBe(receipt);
+			expect(deleteWhere.consumption_id).toBe(receipt);
 		});
 
 	it('returns null when blocked without counting a failure', async () => {
@@ -71,7 +90,7 @@ describe('Magic token authentication contract', () => {
 		});
 		expect(await auth.authenticate({ token, type: 'auth' })).toBeNull();
 		expect(principalRepo.findOne).not.toHaveBeenCalled();
-		expect(tokens.findOne).not.toHaveBeenCalled();
+		expect(tokens.update).not.toHaveBeenCalled();
 		expect(protection.onFailure).not.toHaveBeenCalled();
 		expect(protection.onSuccess).not.toHaveBeenCalled();
 	});
@@ -79,7 +98,7 @@ describe('Magic token authentication contract', () => {
 	it('counts a requested token type mismatch as a failure', async () => {
 		expect(await auth.authenticate({ token, type: 'reset' })).toBeNull();
 		expect(protection.onFailure).toHaveBeenCalledTimes(1);
-		expect(tokens.findOne).not.toHaveBeenCalled();
+		expect(tokens.update).not.toHaveBeenCalled();
 	});
 
 	it('counts malformed and expired JWTs as failures', async () => {
@@ -92,7 +111,7 @@ describe('Magic token authentication contract', () => {
 			})).toBeNull();
 		}
 		expect(protection.onFailure).toHaveBeenCalledTimes(2);
-		expect(tokens.findOne).not.toHaveBeenCalled();
+		expect(tokens.update).not.toHaveBeenCalled();
 	});
 
 	it('rejects inactive principals without consuming the token', async () => {
@@ -105,25 +124,31 @@ describe('Magic token authentication contract', () => {
 
 	it('counts missing tokens as authentication failures', async () => {
 		tokens.findOne.and.resolveTo(null);
-		expect(await auth.authenticate({ token, type: 'auth' })).toBeNull();
+		expect(await auth.authenticate({
+			token, type: 'auth',
+		})).toBeNull();
 		expect(protection.onFailure).toHaveBeenCalledTimes(1);
 		expect(protection.onSuccess).not.toHaveBeenCalled();
 	});
 
-	it('propagates token deletion errors without counting failure', async () => {
-		const outage = new Error('cleanup unavailable');
-		tokens.delete.and.rejectWith(outage);
-		await expectAsync(auth.authenticate({ token, type: 'auth' }))
-			.toBeRejectedWith(outage);
-		expect(tokens.findOne).toHaveBeenCalledTimes(1);
-		expect(protection.onFailure).not.toHaveBeenCalled();
-		expect(protection.onSuccess).not.toHaveBeenCalled();
-	});
+	it('propagates token deletion errors without counting failure',
+		async () => {
+			const outage = new Error('cleanup unavailable');
+			tokens.delete.and.rejectWith(outage);
+			await expectAsync(auth.authenticate({
+				token, type: 'auth',
+			}))
+				.toBeRejectedWith(outage);
+			expect(tokens.update).toHaveBeenCalledTimes(1);
+			expect(tokens.findOne).toHaveBeenCalledTimes(1);
+			expect(protection.onFailure).not.toHaveBeenCalled();
+			expect(protection.onSuccess).not.toHaveBeenCalled();
+		});
 
 	it('propagates database and protection outages without counting failure',
 		async () => {
 			const outage = new Error('database unavailable');
-			tokens.findOne.and.rejectWith(outage);
+			tokens.update.and.rejectWith(outage);
 			await expectAsync(auth.authenticate({ token, type: 'auth' }))
 				.toBeRejectedWith(outage);
 			expect(protection.onFailure).not.toHaveBeenCalled();
@@ -151,7 +176,7 @@ describe('Magic token authentication contract', () => {
 			expect(protection.onFailure).not.toHaveBeenCalled();
 		});
 
-	it('deletes the token before recording success', async () => {
+	it('deletes the claimed token before recording success', async () => {
 		protection.onSuccess.and.callFake(async () => {
 			expect(tokens.delete).toHaveBeenCalledTimes(1);
 		});
