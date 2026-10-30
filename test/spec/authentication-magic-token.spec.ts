@@ -86,9 +86,7 @@ describe('Authentication - Magic Token', () => {
 		// Wait a second to avoid not-before-time exception
 		await new Promise((a) => setTimeout(a, 1000));
 
-		await expectAsync(
-			auth.authenticate({ token, type: 'auth' })
-		).toBeRejected();
+		expect(await auth.authenticate({ token, type: 'auth' })).toBeNull();
 	});
 
 	it('can reject expired token', async () => {
@@ -103,9 +101,9 @@ describe('Authentication - Magic Token', () => {
 
 		// Wait 1+ seconds to expire the token
 		await new Promise((a) => setTimeout(a, 1100));
-		await expectAsync(
-			auth.authenticate({ token: tokenObj.token, type: 'auth' })
-		).toBeRejected();
+		expect(await auth.authenticate({
+			token: tokenObj.token, type: 'auth',
+		})).toBeNull();
 	});
 
 	it('can reject wrong type of token', async () => {
@@ -117,11 +115,9 @@ describe('Authentication - Magic Token', () => {
 
 		// Wait a second to avoid not-before-time exception
 		await new Promise((a) => setTimeout(a, 1000));
-		await expectAsync(
-			auth.authenticate({ token: tokenObj.token, type: 'wrong-type' })
-		).toBeRejectedWithError(
-			'Wrong type of token provided for this operation.'
-		);
+		expect(await auth.authenticate({
+			token: tokenObj.token, type: 'wrong-type',
+		})).toBeNull();
 	});
 
 	it('cannot use token twice', async () => {
@@ -142,8 +138,21 @@ describe('Authentication - Magic Token', () => {
 
 		await auth.authenticate({ token: tokenObj.token, type: 'auth' });
 
-		await expectAsync(
-			auth.authenticate({ token: tokenObj.token, type: 'auth' })
-		).toBeRejectedWithError('Token is invalid or expired.');
+		expect(await auth.authenticate({
+			token: tokenObj.token, type: 'auth',
+		})).toBeNull();
+	});
+
+	it('rejects a token after the principal is deactivated', async () => {
+		const id = await auth.createPrincipal({
+			login: 'inactive@example.com', type: 'user', name: 'Inactive',
+		});
+		const token = await auth.createMagicToken({
+			login: 'inactive@example.com',
+		});
+		await auth.deactivatePrincipal(id);
+		expect(await auth.authenticate({
+			token: token.token, type: 'auth',
+		})).toBeNull();
 	});
 });

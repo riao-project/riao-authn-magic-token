@@ -76,7 +76,14 @@ async function main() {
 		type: 'auth',
 	});
 
-	console.log('✓ Authentication successful:', authenticated);
+	if (authenticated === null) {
+		console.log('Authentication rejected');
+	}
+	else {
+		// Issue an application-owned session for authenticated.id here.
+		// The consumed magic token must not become a session bearer token.
+		console.log('✓ Authenticated principal:', authenticated.id);
+	}
 
 	// Cleanup
 	await db.disconnect();

@@ -4,10 +4,6 @@ import { Jwt } from '@riao/crypto';
 import { Principal } from '@riao/iam';
 import { MagicTokenAuthentication } from '../../src/authentication-magic-token';
 import { MagicTokenRecord } from '../../src/magic-token';
-// eslint-disable-next-line max-len
-import { AuthenticationMagicTokenMigrations } from '../../src/authentication-magic-token-migrations';
-// eslint-disable-next-line max-len
-import { CreateMagicTokenTable } from '../../src/migrations/001-create-magic-token-table';
 
 describe('Atomic magic token consumption', () => {
 	const principal: Principal = {
@@ -76,13 +72,13 @@ describe('Atomic magic token consumption', () => {
 				authenticate(), authenticate(),
 			]);
 			expect(results.filter((r) => r.status === 'fulfilled').length)
-				.toBe(1);
-			const success = results.find((r) => r.status === 'fulfilled');
-			expect(success && success.status === 'fulfilled' && success.value)
-				.toEqual(principal);
-			const failure = results.find((r) => r.status === 'rejected');
-			expect(failure && failure.status === 'rejected' && failure.reason)
-				.toEqual(new Error('Token is invalid or expired.'));
+				.toBe(2);
+			expect(results.filter((r) =>
+				r.status === 'fulfilled' && r.value === principal
+			).length).toBe(1);
+			expect(results.filter((r) =>
+				r.status === 'fulfilled' && r.value === null
+			).length).toBe(1);
 			expect(tokens.update).toHaveBeenCalledTimes(2);
 			const receipts = tokens.update.calls.allArgs().map(
 				([options]) => String(options.set.consumption_id)
@@ -90,8 +86,7 @@ describe('Atomic magic token consumption', () => {
 			expect(receipts[0]).not.toEqual(receipts[1]);
 			expect(tokens.delete).toHaveBeenCalledTimes(1);
 			expect(row).toBeNull();
-			await expectAsync(authenticate())
-				.toBeRejectedWithError('Token is invalid or expired.');
+			expect(await authenticate()).toBeNull();
 		});
 
 	it('matches the token, principal, type, and unused receipt in the claim',
@@ -112,27 +107,24 @@ describe('Atomic magic token consumption', () => {
 
 	it('cannot claim a token belonging to a different principal', async () => {
 		row!.principal_id = 'other';
-		await expectAsync(authenticate())
-			.toBeRejectedWithError('Token is invalid or expired.');
+		expect(await authenticate()).toBeNull();
 		expect(tokens.delete).not.toHaveBeenCalled();
 	});
 
-	it('rejects already claimed tokens even when cleanup failed', async () => {
+	it('rejects claimed tokens after cleanup fails', async () => {
 		tokens.delete.and.rejectWith(new Error('cleanup failed'));
 		await expectAsync(authenticate())
 			.toBeRejectedWithError('cleanup failed');
 		expect(row!.consumption_id).toEqual(jasmine.any(String));
-		await expectAsync(authenticate())
-			.toBeRejectedWithError('Token is invalid or expired.');
+		expect(await authenticate()).toBeNull();
 		expect(tokens.delete).toHaveBeenCalledTimes(1);
 	});
 
-	it('preserves the old wrong-type error without consuming a token',
+	it('counts a wrong-type token as a failure without consuming it',
 		async () => {
-			await expectAsync(auth.authenticate({ token, type: 'other' }))
-				.toBeRejectedWithError(
-					'Wrong type of token provided for this operation.'
-				);
+			expect(await auth.authenticate({
+				token, type: 'other',
+			})).toBeNull();
 			expect(tokens.update).not.toHaveBeenCalled();
 		});
 

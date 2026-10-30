@@ -1,6 +1,6 @@
 # @riao/authn-magic-token
 
-A passwordless authentication driver for the RIAO IAM framework that uses magic tokens (one-time use JWT tokens) for user authentication.
+A passwordless authentication driver for the RIAO IAM framework that uses JWT magic tokens for user authentication.
 
 ## Overview
 
@@ -9,7 +9,7 @@ Magic-token driver for @riao/iam - magic tokens allow users to log in via a uniq
 **Key Features:**
 - Passwordless authentication using magic tokens
 - Time-limited JWT tokens with configurable expiration
-- One-time token usage (tokens are deleted after successful authentication)
+- Tokens are deleted after successful authentication
 - Built on RIAO IAM framework
 - TypeScript support with full type safety
 - PostgreSQL database support
@@ -47,7 +47,8 @@ npx riao migration:run
 
 ```typescript
 import { MagicTokenAuthentication } from '@riao/authn-magic-token';
-import { KeyPairGenerator, Principal } from '@riao/crypto';
+import { KeyPairGenerator } from '@riao/crypto';
+import { Principal } from '@riao/iam';
 
 // Generate keypair for JWT signing
 const keypair = new KeyPairGenerator({ algorithm: 'ES512' }).generate();
@@ -97,8 +98,13 @@ const authenticated = await auth.authenticate({
   type: 'auth',
 });
 
-console.log('Authenticated user:', authenticated);
-// Token is automatically deleted after successful authentication
+if (authenticated === null) {
+  // Return a generic login rejection (including blocked attempts).
+}
+else {
+  // Create your application's session for authenticated.id here.
+  // Token has been consumed; do not use it as a session bearer token.
+}
 ```
 
 ## Token Expiration
@@ -152,8 +158,3 @@ See [contributing.md](docs/contributing/contributing.md) for information on how 
 ## License
 
 See [LICENSE.md](LICENSE.md) for details.
-
-## Dependencies
-
-- `@riao/dbal` - Database abstraction layer
-- `@riao/iam` - IAM framework and JWT utilities
