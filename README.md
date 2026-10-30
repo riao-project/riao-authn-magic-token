@@ -105,8 +105,6 @@ if (authenticated === null) {
   // Token has been consumed; do not use it as a session bearer token.
 }
 ```
-atch.
-
 
 ## Token Expiration
 
