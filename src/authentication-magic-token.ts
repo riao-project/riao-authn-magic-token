@@ -9,6 +9,7 @@ import {
 } from './magic-token';
 import { QueryRepository } from '@riao/dbal';
 import { KeyValExpression } from '@riao/dbal/expression/key-val-expression';
+import { randomUUID } from 'crypto';
 
 export interface MagicTokenAuthenticationOptions extends AuthOptions {
 	jwtOptions: JwtOptions;
@@ -90,13 +91,19 @@ export class MagicTokenAuthentication<
 			},
 		});
 
-		// Check token exists
-		const tokenRecord = await this.magicTokenRepo.findOne({
+		// A conditional write and unique receipt identify the winning attempt.
+		const consumptionId = randomUUID();
+		await this.magicTokenRepo.update({
+			set: { consumption_id: consumptionId },
 			where: {
 				principal_id: data.principalId,
 				token: credentials.token,
 				type: credentials.type,
+				consumption_id: null,
 			},
+		});
+		const tokenRecord = await this.magicTokenRepo.findOne({
+			where: { consumption_id: consumptionId },
 		});
 
 		if (!tokenRecord) {
@@ -105,7 +112,7 @@ export class MagicTokenAuthentication<
 
 		// Delete token
 		await this.magicTokenRepo.delete({
-			where: { id: tokenRecord.id },
+			where: { consumption_id: consumptionId },
 		});
 
 		return principal;
