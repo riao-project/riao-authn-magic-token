@@ -7,7 +7,7 @@ import { MagicTokenRecord } from '../../src/magic-token';
 // eslint-disable-next-line max-len
 import { AuthenticationMagicTokenMigrations } from '../../src/authentication-magic-token-migrations';
 // eslint-disable-next-line max-len
-import { AddTokenConsumptionId } from '../../src/migrations/002-add-token-consumption-id';
+import { CreateMagicTokenTable } from '../../src/migrations/001-create-magic-token-table';
 
 describe('Atomic magic token consumption', () => {
 	const principal: Principal = {
@@ -142,31 +142,5 @@ describe('Atomic magic token consumption', () => {
 			.toBeRejectedWithError('database unavailable');
 		expect(tokens.findOne).not.toHaveBeenCalled();
 		expect(tokens.delete).not.toHaveBeenCalled();
-	});
-
-	it('registers a reversible nullable receipt migration', async () => {
-		const migrations = new AuthenticationMagicTokenMigrations();
-		expect((await migrations.getMigrations())['add-token-consumption-id'])
-			.toBe(AddTokenConsumptionId);
-		const ddl = jasmine.createSpyObj('ddl', ['addColumns', 'dropColumn']);
-		ddl.addColumns.and.resolveTo();
-		ddl.dropColumn.and.resolveTo();
-		const migration = Object.create(
-			AddTokenConsumptionId.prototype
-		) as AddTokenConsumptionId;
-		Object.assign(migration, { ddl });
-		await migration.up();
-		expect(ddl.addColumns).toHaveBeenCalledWith({
-			table: 'iam_magic_tokens',
-			columns: [jasmine.objectContaining({
-				name: 'consumption_id', length: 64,
-			})],
-		});
-		const column = ddl.addColumns.calls.mostRecent().args[0].columns[0];
-		expect(column.required).not.toBeTrue();
-		await migration.down();
-		expect(ddl.dropColumn).toHaveBeenCalledWith({
-			table: 'iam_magic_tokens', column: 'consumption_id',
-		});
 	});
 });

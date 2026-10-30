@@ -6,9 +6,7 @@ A passwordless authentication driver for the RIAO IAM framework that uses magic 
 
 ### Single-use token consumption
 
-Run the authentication package migrations before deploying this change. The
-`add-token-consumption-id` migration adds a nullable `consumption_id` column to
-`iam_magic_tokens`; existing unused tokens remain valid.
+Run the authentication package migrations before deploying this change.
 
 Authentication conditionally claims an unused token with a unique receipt before
 deleting it. Concurrent replay can produce only one successful authentication.
