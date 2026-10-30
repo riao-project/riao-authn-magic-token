@@ -105,41 +105,8 @@ if (authenticated === null) {
   // Token has been consumed; do not use it as a session bearer token.
 }
 ```
+atch.
 
-## Version 3 Authentication Contract
-
-Requires `@riao/iam` 5 and `@riao/crypto` 1.2. Options extend IAM's
-`AuthenticationOptions`, including `authenticationProtection`. Authentication
-runs `beforeAttempt`, then exactly one `onFailure` for invalid credentials or
-`onSuccess` for an authenticated active principal. A denied `beforeAttempt`
-returns `null` without recording another failure or success.
-
-`authenticate()` returns a principal or `null` for invalid/expired JWTs,
-tokens whose requested type does not match, missing/consumed tokens, inactive
-principals, and blocked attempts. Database, signing-key/crypto, and protection-hook operational errors
-propagate; do not translate them into bad-credential attempts. JWT rejection
-uses crypto's `isTokenValidationError`, not a blanket exception catch.
-
-The coordinated dependency lock entries omit registry `resolved`/`integrity`
-until IAM 5 and crypto 1.2 are published. Regenerate with
-`npm install --package-lock-only` after release to record registry integrity.
-
-The protection subject is `magic-token` for all hooks (never the secret token
-or unverified JWT claims), providing scheme-wide protection.
-Applications needing per-client admission limits should enforce those at the
-HTTP boundary. Token issuance is a separate API: `createMagicToken()` throws
-IAM's `AuthenticationRejectedError` for unknown/inactive principals.
-
-Inactive-principal attempts do not consume tokens. Successful authentication
-deletes the matching token record, but concurrent attempts are not atomically
-serialized. The token is a credential, **not** a session bearer token: issue an
-application-owned session only after a non-null principal is returned.
-
-At an HTTP boundary, use generic rejection responses for `null` and handle
-operational errors separately (for example, HTTP 503). `null` deliberately
-does not expose a retry delay; APIs that throw IAM's `AuthenticationBlockedError`
-can expose its optional `retryAfterSeconds` as `Retry-After` with HTTP 429.
-Never disclose account existence or log bearer credentials.
 
 ## Token Expiration
 
@@ -158,7 +125,7 @@ The time format uses the `ms` package notation.
 
 1. **Send tokens via secure channels** - Always send magic tokens via email, SMS, or other secure channels, not in logs
 2. **Set appropriate expiration** - Use shorter expiration times for sensitive operations
-3. **Token cleanup** - Successfully authenticated token records are deleted; concurrent attempts are not atomically serialized
+3. **One-time use** - Tokens are automatically deleted after successful authentication
 4. **Rate limiting** - Consider implementing rate limiting on token creation to prevent abuse
 5. **Logging** - Log authentication events for security auditing
 
@@ -192,8 +159,3 @@ See [contributing.md](docs/contributing/contributing.md) for information on how 
 ## License
 
 See [LICENSE.md](LICENSE.md) for details.
-
-## Dependencies
-
-- `@riao/dbal` - Database abstraction layer
-- `@riao/iam` - IAM framework and JWT utilities
